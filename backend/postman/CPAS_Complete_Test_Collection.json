@@ -1,0 +1,2346 @@
+{
+	"info": {
+		"_postman_id": "cpas-complete-test-2025",
+		"name": "CPAS - Complete Test Suite",
+		"description": "Comprehensive test collection for Crime Pattern Analysis System. Tests all functionality in logical sequential flow.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "cpas-exporter"
+	},
+	"item": [
+		{
+			"name": "0. Setup & Health Check",
+			"item": [
+				{
+					"name": "Health Check - Server Status",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Set baseUrl if not already set",
+									"if (!pm.collectionVariables.get('baseUrl') && !pm.environment.get('baseUrl')) {",
+									"    pm.collectionVariables.set('baseUrl', 'http://localhost:3001');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Get baseUrl from collection or environment",
+									"var baseUrl = pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || 'http://localhost:3001';",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has message\", function () {",
+									"    if (pm.response.code === 200) {",
+									"        try {",
+									"            var jsonData = pm.response.json();",
+									"            pm.expect(jsonData).to.have.property('message');",
+									"            pm.expect(jsonData.message).to.include('running');",
+									"        } catch (e) {",
+									"            pm.expect.fail('Response is not valid JSON');",
+									"        }",
+									"    }",
+									"});",
+									"",
+									"// Log if connection failed",
+									"if (pm.response.code === 0) {",
+									"    console.log('ERROR: Could not connect to server at ' + baseUrl);",
+									"    console.log('Please ensure the backend server is running.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": ["{{baseUrl}}"],
+							"path": [""]
+						},
+						"description": "Check if server is running. If this fails, ensure backend is running on the correct port."
+					}
+				}
+			]
+		},
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Officer Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"    ",
+									"    // Save token for subsequent requests",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('officerToken', jsonData.token);",
+									"        console.log('Officer token saved successfully');",
+									"    }",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('officerId', jsonData.user.id);",
+									"        pm.collectionVariables.set('officerName', jsonData.user.name || '');",
+									"    }",
+									"});",
+									"",
+									"pm.test(\"User role is OFFICER\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.role).to.eql('OFFICER');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"ahmed.khan@police.gov.pk\",\n    \"password\": \"changeme123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/officer/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "officer", "login"]
+						},
+						"description": "Login as officer to get JWT token.\n\n**Credentials (from populate-passwords.js):**\n- Email: Use any officer email from your database (e.g., ahmed.khan@police.gov.pk)\n- Password: changeme123\n\n**After login:** Token is automatically saved to `officerToken` variable for use in other requests."
+					}
+				},
+				{
+					"name": "Victim Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    ",
+									"    // Save token for victim requests",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('victimToken', jsonData.token);",
+									"        console.log('Victim token saved successfully');",
+									"    }",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('victimId', jsonData.user.id);",
+									"    }",
+									"});",
+									"",
+									"pm.test(\"User role is VICTIM\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.role).to.eql('VICTIM');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"victim1@cpas.local\",\n    \"password\": \"changeme123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/victim/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "victim", "login"]
+						},
+						"description": "Login as victim to get JWT token.\n\n**Credentials (from setup-victim-witness-credentials.js):**\n- Email format: victim{ID}@cpas.local (e.g., victim1@cpas.local, victim2@cpas.local)\n- Password: changeme123\n\n**Note:** If victim1 doesn't exist, try victim2, victim3, etc.\n\n**After login:** Token is automatically saved to `victimToken` variable for use in other requests."
+					}
+				},
+				{
+					"name": "Witness Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    ",
+									"    // Save token for witness requests",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set('witnessToken', jsonData.token);",
+									"        console.log('Witness token saved successfully');",
+									"    }",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('witnessId', jsonData.user.id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"witness1@cpas.local\",\n    \"password\": \"changeme123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/witness/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "witness", "login"]
+						},
+						"description": "Login as witness to get JWT token.\n\n**Credentials (from setup-victim-witness-credentials.js):**\n- Email format: witness{ID}@cpas.local (e.g., witness1@cpas.local, witness2@cpas.local)\n- Password: changeme123\n\n**Note:** If witness1 doesn't exist, try witness2, witness3, etc.\n\n**After login:** Token is automatically saved to `witnessToken` variable for use in other requests."
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Base Entities Setup",
+			"item": [
+				{
+					"name": "Get All Crime Types",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    ",
+									"    // Save first crime type ID if available",
+									"    if (jsonData.data.length > 0) {",
+									"        pm.collectionVariables.set('crimeTypeId', jsonData.data[0].CRIME_TYPE_ID || jsonData.data[0].Crime_Type_ID);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-types",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-types"]
+						}
+					}
+				},
+				{
+					"name": "Create Crime Type",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"typeName\": \"Test Crime Type\",\n    \"category\": \"Property\",\n    \"description\": \"Test crime type for testing purposes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-types",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-types"]
+						}
+					}
+				},
+				{
+					"name": "Get All Locations",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    ",
+									"    // Save first location ID if available",
+									"    if (jsonData.data.length > 0) {",
+									"        pm.collectionVariables.set('locationId', jsonData.data[0].LOCATION_ID || jsonData.data[0].Location_ID);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/locations",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "locations"]
+						}
+					}
+				},
+				{
+					"name": "Create Location",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"city\": \"Karachi\",\n    \"area\": \"Clifton\",\n    \"street\": \"Sea View Road\",\n    \"latitude\": 24.8138,\n    \"longitude\": 67.0720\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/locations",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "locations"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Suspects Management",
+			"item": [
+				{
+					"name": "Create Suspect",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Suspect created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('created');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Suspect\",\n    \"gender\": \"Male\",\n    \"age\": 30,\n    \"address\": \"Test Address, Karachi\",\n    \"criminalRecord\": 1,\n    \"status\": \"At Large\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/suspects",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "suspects"]
+						}
+					}
+				},
+				{
+					"name": "Get All Suspects",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    ",
+									"    // Save first suspect ID",
+									"    if (jsonData.data.length > 0) {",
+									"        var suspect = jsonData.data[0];",
+									"        pm.collectionVariables.set('suspectId', suspect.SUSPECT_ID || suspect.Suspect_ID || suspect[0]);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/suspects",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "suspects"]
+						}
+					}
+				},
+				{
+					"name": "Get Suspect by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has suspect and crime history\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('suspect');",
+									"    pm.expect(jsonData.data).to.have.property('crimeHistory');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/suspects/{{suspectId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "suspects", "{{suspectId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Suspect",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"Arrested\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/suspects/{{suspectId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "suspects", "{{suspectId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Crimes Management",
+			"item": [
+				{
+					"name": "Create Crime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Crime created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('created');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"crimeTypeName\": \"Theft\",\n    \"dateReported\": \"2025-01-15\",\n    \"dateOccurred\": \"2025-01-14\",\n    \"timeOccurred\": \"14:30\",\n    \"description\": \"Test crime description for testing\",\n    \"status\": \"Open\",\n    \"severityLevel\": \"Minor\",\n    \"city\": \"Karachi\",\n    \"area\": \"Clifton\",\n    \"street\": \"Sea View Road\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes"]
+						}
+					}
+				},
+				{
+					"name": "Get All Crimes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    ",
+									"    // Save first crime ID",
+									"    if (jsonData.data.length > 0) {",
+									"        var crime = jsonData.data[0];",
+									"        pm.collectionVariables.set('crimeId', crime.CRIME_ID || crime.Crime_ID);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes"]
+						}
+					}
+				},
+				{
+					"name": "Get Crime by ID (Full Details)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has complete crime data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('crime');",
+									"    pm.expect(jsonData.data).to.have.property('suspects');",
+									"    pm.expect(jsonData.data).to.have.property('victims');",
+									"    pm.expect(jsonData.data).to.have.property('witnesses');",
+									"    pm.expect(jsonData.data).to.have.property('evidence');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes/{{crimeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes", "{{crimeId}}"]
+						}
+					}
+				},
+				{
+					"name": "Link Suspect to Crime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Suspect linked successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('linked');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"suspectId\": {{suspectId}},\n    \"role\": \"Primary Suspect\",\n    \"arrestStatus\": \"Pending\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes/{{crimeId}}/suspects",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes", "{{crimeId}}", "suspects"]
+						}
+					}
+				},
+				{
+					"name": "Link Victim to Crime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"victimId\": {{victimId}},\n    \"injurySeverity\": \"Minor\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes/{{crimeId}}/victims",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes", "{{crimeId}}", "victims"]
+						}
+					}
+				},
+				{
+					"name": "Link Witness to Crime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Witness linked successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('linked');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"witnessId\": {{witnessId}},\n    \"statementDate\": \"2025-01-15\",\n    \"statementText\": \"I witnessed the incident at the location\",\n    \"isKeyWitness\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes/{{crimeId}}/witnesses",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes", "{{crimeId}}", "witnesses"]
+						}
+					}
+				},
+				{
+					"name": "Update Witness Statement",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"statementText\": \"Updated statement with more details\",\n    \"isKeyWitness\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes/{{crimeId}}/witnesses/{{witnessId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes", "{{crimeId}}", "witnesses", "{{witnessId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Crime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"Under Investigation\",\n    \"severityLevel\": \"Moderate\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crimes/{{crimeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crimes", "{{crimeId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Evidence Management",
+			"item": [
+				{
+					"name": "Create Evidence",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Verify required variables are set",
+									"var officerToken = pm.collectionVariables.get('officerToken');",
+									"var crimeId = pm.collectionVariables.get('crimeId');",
+									"",
+									"if (!officerToken) {",
+									"    throw new Error('officerToken not set. Please run Officer Login first.');",
+									"}",
+									"if (!crimeId) {",
+									"    throw new Error('crimeId not set. Please create a crime first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 401) {",
+									"    pm.test(\"Authentication check\", function () {",
+									"        pm.expect.fail('Token missing or invalid. Check officerToken is set.');",
+									"    });",
+									"} else if (pm.response.code === 500) {",
+									"    var jsonData = pm.response.json();",
+									"    console.log('Server error:', jsonData);",
+									"    pm.test(\"Status code is 201\", function () {",
+									"        pm.expect.fail('Server error: ' + (jsonData.error || jsonData.message || 'Unknown error'));",
+									"    });",
+									"} else {",
+									"    pm.test(\"Status code is 201\", function () {",
+									"        pm.response.to.have.status(201);",
+									"    });",
+									"    ",
+									"    pm.test(\"Evidence created successfully\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.message).to.include('created');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"crimeId\": {{crimeId}},\n    \"type\": \"Fingerprint\",\n    \"description\": \"Fingerprint found at crime scene\",\n    \"dateCollected\": \"2025-01-15\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/evidence",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "evidence"]
+						}
+					}
+				},
+				{
+					"name": "Get All Evidence",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    ",
+									"    // Save first evidence ID",
+									"    if (jsonData.data.length > 0) {",
+									"        var evidence = jsonData.data[0];",
+									"        pm.collectionVariables.set('evidenceId', evidence.EVIDENCE_ID || evidence.Evidence_ID || evidence[0]);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/evidence",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "evidence"]
+						}
+					}
+				},
+				{
+					"name": "Update Evidence Chain of Custody (COLLECTED)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Chain of custody updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('chain');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"COLLECTED\",\n    \"notes\": \"Evidence collected at crime scene by officer\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/evidence/{{evidenceId}}/chain",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "evidence", "{{evidenceId}}", "chain"]
+						},
+						"description": "Uses stored procedure sp_update_evidence_chain"
+					}
+				},
+				{
+					"name": "Update Evidence Chain of Custody (TRANSFERRED)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"TRANSFERRED\",\n    \"notes\": \"Evidence transferred to forensics lab\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/evidence/{{evidenceId}}/chain",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "evidence", "{{evidenceId}}", "chain"]
+						}
+					}
+				},
+				{
+					"name": "Update Evidence Chain of Custody (ANALYZED)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"ANALYZED\",\n    \"notes\": \"Evidence analyzed and results documented\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/evidence/{{evidenceId}}/chain",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "evidence", "{{evidenceId}}", "chain"]
+						}
+					}
+				},
+				{
+					"name": "Get Evidence by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has evidence data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/evidence/{{evidenceId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "evidence", "{{evidenceId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Crime Reports (with Auto-Crime Creation)",
+			"item": [
+				{
+					"name": "Create Crime Report (Regular)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Verify victim token is set",
+									"var victimToken = pm.collectionVariables.get('victimToken');",
+									"if (!victimToken) {",
+									"    throw new Error('victimToken not set. Please run Victim Login first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 401) {",
+									"    pm.test(\"Authentication check\", function () {",
+									"        pm.expect.fail('Token missing or invalid. Check victimToken is set from Victim Login.');",
+									"    });",
+									"} else {",
+									"    pm.test(\"Status code is 201\", function () {",
+									"        pm.response.to.have.status(201);",
+									"    });",
+									"    ",
+									"    pm.test(\"Report created successfully\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.message).to.include('created');",
+									"        ",
+									"        // Save report ID if returned",
+									"        if (jsonData.reportId) {",
+									"            pm.collectionVariables.set('reportId', jsonData.reportId);",
+									"        }",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{victimToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reportDetails\": \"I was a victim of theft on January 14, 2025. My wallet was stolen near the market.\",\n    \"reportedByName\": \"Test Victim\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-reports",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-reports"]
+						}
+					}
+				},
+				{
+					"name": "Create Crime Report with Auto-Crime Creation",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Verify required variables are set",
+									"var victimToken = pm.collectionVariables.get('victimToken');",
+									"var crimeTypeId = pm.collectionVariables.get('crimeTypeId');",
+									"var locationId = pm.collectionVariables.get('locationId');",
+									"",
+									"if (!victimToken) {",
+									"    throw new Error('victimToken not set. Please run Victim Login first.');",
+									"}",
+									"if (!crimeTypeId) {",
+									"    throw new Error('crimeTypeId not set. Please create a crime type first.');",
+									"}",
+									"if (!locationId) {",
+									"    throw new Error('locationId not set. Please create a location first.');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 401) {",
+									"    pm.test(\"Authentication check\", function () {",
+									"        pm.expect.fail('Token missing or invalid. Check victimToken is set from Victim Login.');",
+									"    });",
+									"} else {",
+									"    pm.test(\"Status code is 201\", function () {",
+									"        pm.response.to.have.status(201);",
+									"    });",
+									"    ",
+									"    pm.test(\"Report and crime created successfully\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.message).to.include('auto-created');",
+									"        pm.expect(jsonData).to.have.property('reportId');",
+									"        pm.expect(jsonData).to.have.property('crimeId');",
+									"        ",
+									"        // Save IDs",
+									"        pm.collectionVariables.set('autoReportId', jsonData.reportId);",
+									"        pm.collectionVariables.set('autoCrimeId', jsonData.crimeId);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{victimToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reportDetails\": \"Automated crime report with auto-created crime entry\",\n    \"reportedByName\": \"Test Victim\",\n    \"autoCreateCrime\": true,\n    \"crimeTypeId\": {{crimeTypeId}},\n    \"dateOccurred\": \"2025-01-15\",\n    \"locationId\": {{locationId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-reports",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-reports"]
+						},
+						"description": "Uses stored procedure sp_create_crime_report to auto-create crime"
+					}
+				},
+				{
+					"name": "Get All Crime Reports",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-reports",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-reports"]
+						}
+					}
+				},
+				{
+					"name": "Get Crime Report by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has report and linked crimes\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('report');",
+									"    pm.expect(jsonData.data).to.have.property('linked_crimes');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-reports/{{autoReportId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-reports", "{{autoReportId}}"]
+						}
+					}
+				},
+				{
+					"name": "Link Report to Crime",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"crimeId\": {{crimeId}},\n    \"notes\": \"Manually linked report to existing crime\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-reports/{{reportId}}/link",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-reports", "{{reportId}}", "link"]
+						}
+					}
+				},
+				{
+					"name": "Update Crime Report Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reportStatus\": \"Under Investigation\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/crime-reports/{{autoReportId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "crime-reports", "{{autoReportId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "7. Investigations Management",
+			"item": [
+				{
+					"name": "Create Investigation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Investigation created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('created');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"caseNumber\": \"CASE-2025-001\",\n    \"startDate\": \"2025-01-15\",\n    \"status\": \"Active\",\n    \"outcome\": \"Pending\",\n    \"notes\": \"Initial investigation notes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/investigations",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "investigations"]
+						}
+					}
+				},
+				{
+					"name": "Get All Investigations",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    ",
+									"    // Save first investigation ID",
+									"    if (jsonData.data.length > 0) {",
+									"        var inv = jsonData.data[0];",
+									"        pm.collectionVariables.set('investigationId', inv.INVESTIGATION_ID || inv.Investigation_ID || inv[0]);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/investigations",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "investigations"]
+						}
+					}
+				},
+				{
+					"name": "Assign Investigation to Officer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Investigation assigned successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('assigned');",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData.status).to.eql('SUCCESS');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"officerId\": {{officerId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/investigations/{{investigationId}}/assign",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "investigations", "{{investigationId}}", "assign"]
+						},
+						"description": "Uses stored procedure sp_assign_investigation"
+					}
+				},
+				{
+					"name": "Link Crime to Investigation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"crimeId\": {{crimeId}}\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/investigations/{{investigationId}}/crimes",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "investigations", "{{investigationId}}", "crimes"]
+						}
+					}
+				},
+				{
+					"name": "Get Investigation by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has investigation and linked crimes\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('investigation');",
+									"    pm.expect(jsonData.data).to.have.property('linkedCrimes');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/investigations/{{investigationId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "investigations", "{{investigationId}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Investigation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"Active\",\n    \"outcome\": \"Pending\",\n    \"notes\": \"Investigation in progress\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/investigations/{{investigationId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "investigations", "{{investigationId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "8. Analytics",
+			"item": [
+				{
+					"name": "Get Crime Trends",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has trends data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/analytics/crime-trends",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "analytics", "crime-trends"]
+						}
+					}
+				},
+				{
+					"name": "Get Crime Hotspots",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has hotspots data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/analytics/hotspots?limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "analytics", "hotspots"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Crime Patterns",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/analytics/patterns",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "analytics", "patterns"]
+						}
+					}
+				},
+				{
+					"name": "Get Category Distribution",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/analytics/category-distribution",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "analytics", "category-distribution"]
+						}
+					}
+				},
+				{
+					"name": "Get Officer Performance",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/analytics/officer-performance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "analytics", "officer-performance"]
+						}
+					}
+				},
+				{
+					"name": "Get Time Series Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/analytics/time-series?groupBy=MONTH",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "analytics", "time-series"],
+							"query": [
+								{
+									"key": "groupBy",
+									"value": "MONTH"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Crime Statistics by Date Range",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has statistics data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    ",
+									"    // Verify structure",
+									"    if (jsonData.data.length > 0) {",
+									"        var stat = jsonData.data[0];",
+									"        pm.expect(stat).to.have.property('Category');",
+									"        pm.expect(stat).to.have.property('Total_Crimes');",
+									"        pm.expect(stat).to.have.property('Solved_Crimes');",
+									"        pm.expect(stat).to.have.property('Solve_Rate');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/analytics/statistics?startDate=2024-01-01&endDate=2024-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "analytics", "statistics"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2024-12-31"
+								}
+							]
+						},
+						"description": "Uses stored procedure sp_calculate_crime_statistics"
+					}
+				}
+			]
+		},
+		{
+			"name": "9. Predictions",
+			"item": [
+				{
+					"name": "Predict Crime Risk for Location",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has risk assessment\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('risk_assessment');",
+									"    pm.expect(jsonData.data.risk_assessment).to.have.property('risk_score');",
+									"    pm.expect(jsonData.data.risk_assessment).to.have.property('risk_level');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"city\": \"Karachi\",\n    \"area\": \"Clifton\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/predictions/risk-assessment",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "predictions", "risk-assessment"]
+						},
+						"description": "Uses stored procedure sp_predict_crime_risk"
+					}
+				},
+				{
+					"name": "Find Similar Crime Patterns",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has patterns data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"crimeType\": \"Theft\",\n    \"city\": \"Karachi\",\n    \"dayOfWeek\": \"Friday\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/predictions/pattern-matching",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "predictions", "pattern-matching"]
+						}
+					}
+				},
+				{
+					"name": "Forecast Crime Trends",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has forecast data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/predictions/forecast?months=6",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "predictions", "forecast"],
+							"query": [
+								{
+									"key": "months",
+									"value": "6"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "10. Additional Operations",
+			"item": [
+				{
+					"name": "Get All Officers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{officerToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/officers",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "officers"]
+						}
+					}
+				},
+				{
+					"name": "Get Victim Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{victimToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/victim/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "victim", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Get Witness Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{witnessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/witness/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "witness", "profile"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3001",
+			"type": "string",
+			"description": "Base URL for API. Default is port 3001. Change to http://localhost:5000 if your server runs on port 5000"
+		},
+		{
+			"key": "officerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "victimToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "witnessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "officerId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "victimId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "witnessId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "crimeId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "suspectId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "evidenceId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "locationId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "crimeTypeId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "investigationId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "reportId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "autoReportId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "autoCrimeId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

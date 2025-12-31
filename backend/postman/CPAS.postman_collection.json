@@ -1,0 +1,100 @@
+{
+  "info": {
+    "_postman_id": "c0e4c9b2-7e2c-4f2d-9bd5-1fa9c3c2c123",
+    "name": "CPAS Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Officer Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"ahmed.khan@police.gov.pk\",\n  \"password\": \"changeme123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/officer/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "officer", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crimes - Get All",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/crimes",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "crimes"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Crime Reports - Get All",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/crime-reports",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "crime-reports"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Suspects - Get All",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/suspects",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "suspects"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Analytics - Hotspots",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/analytics/hotspots",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "analytics", "hotspots"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "token", "value": "" }
+  ]
+}
+
+
+
+
+
+
+
+
